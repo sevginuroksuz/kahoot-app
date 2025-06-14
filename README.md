@@ -32,7 +32,7 @@ Bu proje, Kahoot!’tan esinlenmiş bir etkileşimli sınav platformudur. Öğre
 ---
 
 ## 📎 Kaynaklar  
-- **Video Tanıtımı:** [Video Linki ]()  
+- **Video Tanıtımı:** [Video Linki ](https://www.youtube.com/watch?v=IJgPGlZi5N8)  
 - **GitHub Deposu:** [Github Linki](https://github.com/sevginuroksuz/kahoot-app)  
 
 ---
