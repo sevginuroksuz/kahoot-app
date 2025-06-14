@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Session - <%= quiz.title %></title>
+    <link rel="stylesheet" href="/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-light">
+    <%- include('partials/navbar', { user: user }) %>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2 class="card-title mb-0"><%= quiz.title %></h2>
+                            <div>
+                                <button id="endSessionBtn" class="btn btn-danger" style="display: none;">
+                                    <i class="ri-stop-circle-line me-2"></i>End Session
+                                </button>
+                                <button id="startSessionBtn" class="btn btn-primary">
+                                    <i class="ri-play-circle-line me-2"></i>Start Session
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Session Info -->
+                        <div class="session-info mb-4">
+                            <div class="alert alert-info d-flex align-items-center" role="alert">
+                                <i class="ri-information-line me-3 ri-xl"></i>
+                                <div>
+                                    <strong>Quiz Code:</strong> 
+                                    <span class="quiz-code-display"><%= session %></span>
+                                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="copyQuizCode()">
+                                        <i class="ri-file-copy-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Participants List -->
+                        <div class="participants-section mb-4">
+                            <h5 class="mb-3">
+                                <i class="ri-group-line me-2"></i>
+                                Participants (<span id="participantCount">0</span>)
+                            </h5>
+                            <div id="participantsList" class="list-group">
+                                <!-- Participants will be added here dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Current Question Display -->
+                        <div id="questionDisplay" class="question-display mb-4" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">Current Question</h5>
+                                <div class="timer-display">
+                                    <i class="ri-time-line me-2"></i>
+                                    <span id="timer">00:00</span>
+                                </div>
+                            </div>
+                            
+                            <div class="progress mb-3" style="height: 5px;">
+                                <div id="timerProgress" class="progress-bar" role="progressbar" style="width: 100%"></div>
+                            </div>
+
+                            <div class="question-content">
+                                <h4 id="questionText" class="mb-3"></h4>
+                                <div id="questionImage" class="mb-3 text-center" style="display: none;">
+                                    <img src="" alt="Question Image" class="img-fluid rounded">
+                                </div>
+                                <div id="optionsDisplay" class="options-grid">
+                                    <!-- Options will be added here dynamically -->
+                                </div>
+                            </div>
+
+                            <div class="answer-stats mt-4" style="display: none;">
+                                <h6 class="mb-3">Response Distribution</h6>
+                                <div id="answerStats" class="answer-bars">
+                                    <!-- Answer statistics will be added here dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Navigation Controls -->
+                        <div id="navigationControls" class="d-flex justify-content-between" style="display: none;">
+                            <button id="prevQuestionBtn" class="btn btn-outline-secondary" disabled>
+                                <i class="ri-arrow-left-line me-2"></i>Previous
+                            </button>
+                            <div class="d-flex align-items-center">
+                                <span id="questionProgress" class="mx-3">Question 0 of <%= (quiz && quiz.questions && quiz.questions.length) || 0 %></span>
+
+
+                            </div>
+                            <button id="nextQuestionBtn" class="btn btn-primary">
+                                <i class="ri-arrow-right-line me-2"></i>Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" class="card shadow-sm" style="display: none;">
+                    <div class="card-body">
+                        <h3 class="card-title mb-4">Session Results</h3>
+                        
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Participant</th>
+                                        <th>Score</th>
+                                        <th>Correct Answers</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resultsTable">
+                                    <!-- Results will be added here dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button class="btn btn-primary" onclick="downloadResults()">
+                                <i class="ri-download-line me-2"></i>Download Results
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const allQuestions = <%- JSON.stringify(quiz.questions || []) %>;
+        const socket = io('http://localhost:3000');
+        
+        let currentQuestionIndex = -1;
+        let timer;
+        let participants = new Map();
+        let sessionActive = false;
+
+        // Session Management
+        document.getElementById('startSessionBtn').addEventListener('click', startSession);
+        document.getElementById('endSessionBtn').addEventListener('click', endSession);
+        document.getElementById('nextQuestionBtn').addEventListener('click', nextQuestion);
+        document.getElementById('prevQuestionBtn').addEventListener('click', previousQuestion);
+
+        function startSession() {
+            console.log('📤 Start Session butonuna tıklandı!'); // test log
+            const quizId = "<%= quiz._id %>";
+            const sessionCode = "<%= session %>";
+            console.log(' quizId:', quizId);
+            console.log(' sessionCode:', sessionCode);
+
+            socket.emit('start-session', {
+                quizId,
+                code: sessionCode
+            });
+
+            // UI güncelleme
+            document.getElementById('startSessionBtn').style.display = 'none';
+            document.getElementById('endSessionBtn').style.display = 'inline-block';
+            document.getElementById('navigationControls').style.display = 'flex';
+            document.getElementById('questionDisplay').style.display = 'block';
+            sessionActive = true;
+            nextQuestion();
+            }
+
+
+        function endSession() {
+            if (confirm('Are you sure you want to end this session?')) {
+                socket.emit('end-session', { quizId: '<%= quiz._id %>' });
+                clearInterval(timer);
+                showResults();
+                
+                document.getElementById('endSessionBtn').style.display = 'none';
+                document.getElementById('navigationControls').style.display = 'none';
+                document.getElementById('questionDisplay').style.display = 'none';
+                document.getElementById('resultsSection').style.display = 'block';
+                
+                sessionActive = false;
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < <%= quiz.questions.length %> - 1) {
+                currentQuestionIndex++;
+                showQuestion(currentQuestionIndex);
+                updateNavigationButtons();
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                showQuestion(currentQuestionIndex);
+                updateNavigationButtons();
+            }
+        }
+
+            function escapeHTML(str) {
+        return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+    }
+
+        function showQuestion(index) {
+            const question = allQuestions[index];
+
+            document.getElementById('questionText').textContent = question.text;
+            document.getElementById('questionProgress').textContent = 
+                `Question ${index + 1} of <%= quiz.questions.length %>`;
+
+            const imageContainer = document.getElementById('questionImage');
+            if (question.image) {
+                imageContainer.style.display = 'block';
+                imageContainer.querySelector('img').src = question.image;
+            } else {
+                imageContainer.style.display = 'none';
+            }
+
+            const optionsDisplay = document.getElementById('optionsDisplay');
+            optionsDisplay.innerHTML = question.options.map((option, i) => `
+                <div class="option-card">
+                    <div class="option-letter">${String.fromCharCode(65 + i)}</div>
+                    <div class="option-text">${escapeHTML(option)}</div>
+                </div>
+            `).join('');
+
+            startTimer();
+
+            socket.emit('question-change', {
+                quizId: '<%= quiz._id %>',
+                questionIndex: index,
+                timeLimit: <%= quiz.timeLimit || 30 %>
+            });
+
+            document.querySelector('.answer-stats').style.display = 'none';
+        }
+
+
+        function updateNavigationButtons() {
+            document.getElementById('prevQuestionBtn').disabled = currentQuestionIndex === 0;
+            document.getElementById('nextQuestionBtn').disabled = 
+                currentQuestionIndex === <%= quiz.questions.length %> - 1;
+        }
+
+        function startTimer() {
+            clearInterval(timer);
+            let timeLeft = <%= quiz.timeLimit %>;
+            const timerDisplay = document.getElementById('timer');
+            const timerProgress = document.getElementById('timerProgress');
+            
+            timerProgress.style.width = '100%';
+            timerProgress.style.transition = 'none';
+            
+            setTimeout(() => {
+                timerProgress.style.transition = `width ${timeLeft}s linear`;
+                timerProgress.style.width = '0%';
+            }, 50);
+
+            timer = setInterval(() => {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerDisplay.textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    showAnswerStats();
+                }
+            }, 1000);
+        }
+
+        function showAnswerStats() {
+            const question = <%= JSON.stringify(quiz.questions) %>[currentQuestionIndex];
+            const stats = new Array(question.options.length).fill(0);
+            
+            // Calculate statistics
+            participants.forEach(participant => {
+                if (participant.answers && participant.answers[currentQuestionIndex] !== undefined) {
+                    stats[participant.answers[currentQuestionIndex]]++;
+                }
+            });
+
+            // Display statistics
+            const statsContainer = document.getElementById('answerStats');
+            statsContainer.innerHTML = stats.map((count, index) => {
+                const percentage = (count / participants.size) * 100 || 0;
+                const isCorrect = index === question.correctOption;
+                return `
+                    <div class="answer-bar-container mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Option ${String.fromCharCode(65 + index)}</span>
+                            <span>${count} responses (${percentage.toFixed(1)}%)</span>
+                        </div>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar ${isCorrect ? 'bg-success' : 'bg-primary'}" 
+                                 role="progressbar" 
+                                 style="width: ${percentage}%">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelector('.answer-stats').style.display = 'block';
+        }
+
+        function showResults() {
+            const results = Array.from(participants.values())
+                .map(participant => {
+                    const correctAnswers = participant.answers?.reduce((count, answer, index) => {
+                        return count + (answer === <%= JSON.stringify(quiz.questions) %>[index].correctOption ? 1 : 0);
+                    }, 0) || 0;
+                    
+                    return {
+                        name: participant.name,
+                        score: correctAnswers * <%= quiz.points %>,
+                        correctAnswers
+                    };
+                })
+                .sort((a, b) => b.score - a.score);
+
+            document.getElementById('resultsTable').innerHTML = results.map((result, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${result.name}</td>
+                    <td>${result.score}</td>
+                    <td>${result.correctAnswers} / <%= quiz.questions.length %></td>
+                </tr>
+            `).join('');
+        }
+
+        function downloadResults() {
+            const results = Array.from(participants.values())
+                .map(participant => {
+                    const correctAnswers = participant.answers?.reduce((count, answer, index) => {
+                        return count + (answer === <%= JSON.stringify(quiz.questions) %>[index].correctOption ? 1 : 0);
+                    }, 0) || 0;
+                    
+                    return {
+                        name: participant.name,
+                        score: correctAnswers * <%= quiz.points %>,
+                        correctAnswers,
+                        totalQuestions: <%= quiz.questions.length %>
+                    };
+                })
+                .sort((a, b) => b.score - a.score);
+
+            const csv = [
+                ['Rank', 'Participant', 'Score', 'Correct Answers', 'Total Questions'],
+                ...results.map((result, index) => [
+                    index + 1,
+                    result.name,
+                    result.score,
+                    result.correctAnswers,
+                    result.totalQuestions
+                ])
+            ].map(row => row.join(',')).join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `quiz-results-${new Date().toISOString()}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function copyQuizCode() {
+            const code = '<%= quiz.code %>';
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.quiz-code-display + button');
+                const icon = btn.querySelector('i');
+                icon.classList.replace('ri-file-copy-line', 'ri-check-line');
+                setTimeout(() => {
+                    icon.classList.replace('ri-check-line', 'ri-file-copy-line');
+                }, 2000);
+            });
+        }
+
+        // Socket event handlers
+        socket.on('participant-joined', ({ participantId, name }) => {
+            participants.set(participantId, { name, answers: [] });
+            updateParticipantsList();
+        });
+
+        socket.on('participant-left', ({ participantId }) => {
+            participants.delete(participantId);
+            updateParticipantsList();
+        });
+
+        socket.on('answer-submitted', ({ participantId, questionIndex, answer }) => {
+            const participant = participants.get(participantId);
+            if (participant) {
+                if (!participant.answers) participant.answers = [];
+                participant.answers[questionIndex] = answer;
+            }
+        });
+
+        function updateParticipantsList() {
+            const list = document.getElementById('participantsList');
+            document.getElementById('participantCount').textContent = participants.size;
+            
+            list.innerHTML = Array.from(participants.values())
+                .map(participant => `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="ri-user-line me-2"></i>
+                            ${participant.name}
+                        </div>
+                        <span class="badge bg-primary rounded-pill">
+                            ${participant.answers?.length || 0} answers
+                        </span>
+                    </div>
+                `).join('');
+        }
+
+        
+
+
+    </script>
+
+    <style>
+        .option-card {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            background-color: #fff;
+            transition: all 0.2s;
+        }
+
+        .option-card:hover {
+            border-color: #0d6efd;
+            box-shadow: 0 0.125rem 0.25rem rgba(13, 110, 253, 0.1);
+        }
+
+        .option-letter {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e9ecef;
+            border-radius: 0.25rem;
+            margin-right: 1rem;
+            font-weight: 600;
+        }
+
+        .option-text {
+            flex: 1;
+        }
+
+        .timer-display {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #0d6efd;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .answer-bar-container {
+            font-size: 0.875rem;
+        }
+
+        .btn-icon {
+            padding: 0.25rem 0.5rem;
+            color: #6c757d;
+        }
+
+        .btn-icon:hover {
+            color: #0d6efd;
+        }
+
+        .quiz-code-display {
+            font-family: monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+    </style>
+</body>
+</html> 

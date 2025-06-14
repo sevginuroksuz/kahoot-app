@@ -1,0 +1,123 @@
+<!-- views/login.ejs -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giriş Yap - Quiz Platform</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8f9fa;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 0;
+    }
+    .login-container {
+      max-width: 400px;
+      width: 100%;
+      padding: 20px;
+    }
+    .login-card {
+      border: none;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .login-icon {
+      font-size: 3rem;
+      color: #0d6efd;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <i class="ri-login-circle-line login-icon"></i>
+      <h1 class="h4">Quiz Platform</h1>
+      <p class="text-muted">Hesabınıza giriş yapın</p>
+    </div>
+
+    <!-- Flash mesajları -->
+    <% if (error && error.length) { %>
+      <% error.forEach(msg => { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <i class="ri-error-warning-line me-2"></i><%= msg %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      <% }) %>
+    <% } %>
+    <% if (success && success.length) { %>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="ri-checkbox-circle-line me-2"></i><%= success %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    <% } %>
+
+    <div class="card login-card">
+      <div class="card-body p-4">
+        <form id="loginForm" action="/auth/login" method="POST" novalidate>
+          <div class="mb-3">
+            <label class="form-label">E-posta</label>
+            <input type="email" class="form-control" name="email" required>
+            <div class="invalid-feedback">Geçerli bir e-posta girin</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Şifre</label>
+            <input type="password" class="form-control" name="password" required>
+            <div class="invalid-feedback">Şifre alanı zorunludur</div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+              <label class="form-check-label" for="rememberMe">Beni Hatırla</label>
+            </div>
+            <a href="/forgot-password" class="text-decoration-none">Şifremi Unuttum</a>
+          </div>
+          <div class="d-grid mb-3">
+            <button type="submit" class="btn btn-primary">
+              <i class="ri-login-circle-line me-2"></i>Giriş Yap
+            </button>
+          </div>
+          <div class="text-center">
+            <span class="text-muted">Hesabınız yok mu?</span>
+            <a href="/register" class="text-decoration-none">Hesap Oluştur</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="/" class="text-decoration-none">
+        <i class="ri-arrow-left-line me-2"></i>Ana Sayfa'ya Dön
+      </a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Basit form validation
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', e => {
+      let valid = true;
+      form.querySelectorAll('input[required]').forEach(input => {
+        if (!input.value.trim()) {
+          input.classList.add('is-invalid');
+          valid = false;
+        } else {
+          input.classList.remove('is-invalid');
+        }
+      });
+      if (!valid) e.preventDefault();
+    });
+  </script>
+</body>
+</html>

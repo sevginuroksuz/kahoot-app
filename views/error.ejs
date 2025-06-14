@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hata - Quiz Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .error-container {
+            max-width: 500px;
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+        }
+        .error-icon {
+            font-size: 4rem;
+            color: #dc3545;
+            margin-bottom: 1rem;
+        }
+        .error-message {
+            margin-bottom: 2rem;
+        }
+        @media (max-width: 576px) {
+            .error-container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <i class="ri-error-warning-line error-icon"></i>
+        <h1 class="h4 mb-3">Oops! Bir Hata Oluştu</h1>
+        <div class="error-message">
+            <p class="text-muted"><%= message %></p>
+            <% if (typeof error !== 'undefined' && error.stack) { %>
+                <pre class="text-danger"><%= error.stack %></pre>
+            <% } %>
+        </div>
+        <a href="/" class="btn btn-primary">
+            <i class="ri-home-line me-2"></i>Ana Sayfa'ya Dön
+        </a>
+    </div>
+</body>
+</html> 

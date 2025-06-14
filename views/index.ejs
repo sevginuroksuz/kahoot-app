@@ -1,0 +1,143 @@
+<!-- views/index.ejs -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Platform - Eğlenceli Öğrenme</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .hero {
+      background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+      color: white;
+      padding: 6rem 0;
+    }
+    .feature-icon {
+      font-size: 2.5rem;
+      color: #0d6efd;
+      margin-bottom: 1rem;
+    }
+    .feature-card {
+      padding: 2rem;
+      border-radius: 1rem;
+      background: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      height: 100%;
+      transition: transform 0.2s;
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+    }
+    .cta-section {
+      background-color: #f8f9fa;
+      padding: 5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <%- include('partials/navbar', { user: user }) %>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container text-center">
+      <h1 class="display-4 fw-bold mb-4">Eğlenceli Öğrenme Platformu</h1>
+      <p class="lead mb-5">
+        İnteraktif quizler ile öğrenmeyi eğlenceli hale getirin. 
+        Öğretmenler için kolay quiz oluşturma, öğrenciler için 
+        eğlenceli öğrenme deneyimi.
+      </p>
+      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+        <% if (!user) { %>
+          <a href="/register" class="btn btn-light btn-lg px-4 gap-3">
+            <i class="ri-user-add-line me-2"></i>Hemen Başla
+          </a>
+          <a href="/login" class="btn btn-outline-light btn-lg px-4">
+            <i class="ri-login-box-line me-2"></i>Giriş Yap
+          </a>
+        <% } else { %>
+          <a href="<%= user.role === 'teacher' ? '/teacher/dashboard' : '/student/dashboard' %>" 
+             class="btn btn-light btn-lg px-4 gap-3">
+            <i class="ri-dashboard-line me-2"></i>Panelim
+          </a>
+          <a href="/auth/logout" class="btn btn-outline-light btn-lg px-4">
+            <i class="ri-logout-box-line me-2"></i>Çıkış Yap
+          </a>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="py-5">
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="feature-card">
+            <i class="ri-edit-box-line feature-icon"></i>
+            <h3>Kolay Quiz Oluşturma</h3>
+            <p>
+              Sürükle-bırak arayüzü ile saniyeler içinde 
+              profesyonel quizler oluşturun.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="feature-card">
+            <i class="ri-group-line feature-icon"></i>
+            <h3>Gerçek Zamanlı Katılım</h3>
+            <p>
+              Öğrenciler mobil cihazlarından kolayca 
+              katılabilir ve anında geri bildirim alabilir.
+            </p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="feature-card">
+            <i class="ri-bar-chart-box-line feature-icon"></i>
+            <h3>Detaylı Analizler</h3>
+            <p>
+              Öğrenci performansını takip edin ve 
+              gelişim alanlarını belirleyin.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="container text-center">
+      <h2 class="mb-4">Hemen Ücretsiz Deneyin</h2>
+      <p class="lead mb-5">
+        Sınıfınızı daha etkileşimli hale getirmek için 
+        Quiz Platform'u kullanmaya başlayın.
+      </p>
+      <% if (!user) { %>
+        <a href="/register" class="btn btn-primary btn-lg">
+          <i class="ri-user-add-line me-2"></i>Ücretsiz Hesap Oluştur
+        </a>
+      <% } else { %>
+        <a href="<%= user.role === 'teacher' ? '/teacher/dashboard' : '/student/dashboard' %>" 
+           class="btn btn-primary btn-lg">
+          <i class="ri-dashboard-line me-2"></i>Panelime Git
+        </a>
+      <% } %>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-4 bg-light">
+    <div class="container text-center">
+      <p class="mb-0">© 2024 Quiz Platform. Tüm hakları saklıdır.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

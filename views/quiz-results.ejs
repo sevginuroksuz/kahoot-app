@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Sonuçları</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .stats-card {
+            transition: transform 0.2s;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        .participant-row:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/teacher/dashboard">
+                <i class="ri-questionnaire-line me-2"></i>Quiz Platform
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/teacher/quizzes">
+                            <i class="ri-list-check me-1"></i>Quizlerim
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/teacher/create-quiz">
+                            <i class="ri-add-circle-line me-1"></i>Yeni Quiz
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <a href="/logout" class="btn btn-outline-light">
+                        <i class="ri-logout-box-line me-1"></i>Çıkış
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="ri-bar-chart-line me-2"></i><%= quiz.title %> Sonuçları
+            </h2>
+            <div>
+                <button class="btn btn-outline-primary me-2" onclick="exportToCSV()">
+                    <i class="ri-file-excel-line me-2"></i>CSV'ye Aktar
+                </button>
+                <a href="/teacher/quizzes" class="btn btn-outline-secondary">
+                    <i class="ri-arrow-left-line me-2"></i>Geri Dön
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stats-card h-100">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <i class="ri-group-line me-1"></i>Katılımcı Sayısı
+                        </h6>
+                        <h3 class="card-title mb-0"><%= stats.totalParticipants %></h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card h-100">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <i class="ri-medal-line me-1"></i>Ortalama Puan
+                        </h6>
+                        <h3 class="card-title mb-0"><%= Math.round(stats.averageScore) %></h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card h-100">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <i class="ri-trophy-line me-1"></i>En Yüksek Puan
+                        </h6>
+                        <h3 class="card-title mb-0"><%= stats.highestScore %></h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card h-100">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <i class="ri-error-warning-line me-1"></i>En Düşük Puan
+                        </h6>
+                        <h3 class="card-title mb-0"><%= stats.lowestScore %></h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Soru Başına Doğru/Yanlış Oranı</h5>
+                        <div class="chart-container">
+                            <canvas id="answersChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Ortalama Cevaplama Süresi</h5>
+                        <div class="chart-container">
+                            <canvas id="timeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Participants Table -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-4">Katılımcı Sonuçları</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>İsim</th>
+                                <th>Puan</th>
+                                <th>Doğru</th>
+                                <th>Yanlış</th>
+                                <th>Tamamlama Süresi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% session.participants.sort((a, b) => b.score - a.score).forEach(participant => { %>
+                                <tr class="participant-row">
+                                    <td><%= participant.name %></td>
+                                    <td><%= participant.score %></td>
+                                    <td class="text-success">
+                                        <%= participant.answers.filter(a => a.isCorrect).length %>
+                                    </td>
+                                    <td class="text-danger">
+                                        <%= participant.answers.filter(a => !a.isCorrect).length %>
+                                    </td>
+                                    <td>
+                                        <%= Math.round(participant.answers.reduce((sum, a) => sum + a.timeSpent, 0)) %>s
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Chart data
+        const questionStats = <%- JSON.stringify(stats.questionStats) %>;
+        
+        // Answers Chart
+        const answersCtx = document.getElementById('answersChart').getContext('2d');
+        new Chart(answersCtx, {
+            type: 'bar',
+            data: {
+                labels: questionStats.map((_, idx) => `Soru ${idx + 1}`),
+                datasets: [{
+                    label: 'Doğru',
+                    data: questionStats.map(stat => stat.correctAnswers),
+                    backgroundColor: '#198754'
+                }, {
+                    label: 'Yanlış',
+                    data: questionStats.map(stat => stat.wrongAnswers),
+                    backgroundColor: '#dc3545'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Time Chart
+        const timeCtx = document.getElementById('timeChart').getContext('2d');
+        new Chart(timeCtx, {
+            type: 'line',
+            data: {
+                labels: questionStats.map((_, idx) => `Soru ${idx + 1}`),
+                datasets: [{
+                    label: 'Ortalama Süre (saniye)',
+                    data: questionStats.map(stat => Math.round(stat.averageTime)),
+                    borderColor: '#0d6efd',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Export to CSV
+        function exportToCSV() {
+            const participants = <%- JSON.stringify(session.participants) %>;
+            const quiz = <%- JSON.stringify(quiz) %>;
+            
+            let csv = 'İsim,Puan,Doğru,Yanlış,Toplam Süre\n';
+            
+            participants.forEach(p => {
+                const correctCount = p.answers.filter(a => a.isCorrect).length;
+                const totalTime = Math.round(p.answers.reduce((sum, a) => sum + a.timeSpent, 0));
+                
+                csv += `${p.name},${p.score},${correctCount},${p.answers.length - correctCount},${totalTime}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${quiz.title}_sonuclari.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html> 

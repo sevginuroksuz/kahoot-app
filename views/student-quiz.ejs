@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Katılımcı Ekranı</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .join-form {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+        .quiz-container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: none;
+        }
+        .option-button {
+            height: 100px;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            transition: all 0.2s;
+        }
+        .option-button:hover {
+            transform: translateY(-2px);
+        }
+        .timer {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .question-image {
+            max-height: 300px;
+            object-fit: contain;
+            margin-bottom: 20px;
+        }
+        .waiting-screen {
+            text-align: center;
+            padding: 50px;
+            display: none;
+        }
+        .results-screen {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Join Form -->
+    <div class="join-form" id="joinForm">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">
+                    <i class="ri-questionnaire-line me-2"></i>Quiz'e Katıl
+                </h3>
+                <form onsubmit="joinSession(event)">
+                    <div class="mb-3">
+                        <label for="sessionCode" class="form-label">Oturum Kodu</label>
+                        <input type="text" class="form-control form-control-lg text-center" 
+                               id="sessionCode" required maxlength="6" 
+                               placeholder="XXXXXX" style="letter-spacing: 0.5rem;">
+                    </div>
+                    <div class="mb-3">
+                        <label for="playerName" class="form-label">İsminiz</label>
+                        <input type="text" class="form-control" id="playerName" 
+                               required placeholder="İsminizi girin">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 btn-lg">
+                        <i class="ri-login-box-line me-2"></i>Katıl
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Waiting Screen -->
+    <div class="waiting-screen" id="waitingScreen">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="mb-4">Quiz Başlaması Bekleniyor</h3>
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Öğretmenin soruyu başlatmasını bekleyin...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Container -->
+    <div class="quiz-container" id="quizContainer">
+        <div class="card">
+            <div class="card-body">
+                <div class="timer" id="timer"></div>
+                <h4 class="card-title mb-4" id="questionText"></h4>
+                <img id="questionImage" class="question-image w-100 d-none">
+                <div class="row" id="optionsContainer">
+                    <!-- Options will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div class="results-screen" id="resultsScreen">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="mb-4">Quiz Sonuçları</h3>
+                <div class="h1 mb-3" id="finalScore"></div>
+                <p class="text-muted" id="correctAnswers"></p>
+                <button class="btn btn-primary mt-3" onclick="location.reload()">
+                    <i class="ri-restart-line me-2"></i>Yeni Quiz'e Katıl
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+        const socket = io('http://localhost:3000');
+        </script>
+    <script>
+        import { io } from "socket.io-client";
+        let timer = null;
+
+        // UI Elements
+        const joinForm = document.getElementById('joinForm');
+        const waitingScreen = document.getElementById('waitingScreen');
+        const quizContainer = document.getElementById('quizContainer');
+        const resultsScreen = document.getElementById('resultsScreen');
+        const timerElement = document.getElementById('timer');
+        const questionText = document.getElementById('questionText');
+        const questionImage = document.getElementById('questionImage');
+        const optionsContainer = document.getElementById('optionsContainer');
+
+        // Join session
+        function joinSession(event) {
+            event.preventDefault();
+            
+            const code = document.getElementById('sessionCode').value.toUpperCase();
+            const name = document.getElementById('playerName').value;
+            
+            socket.emit('join-session', { code, name });
+            
+            joinForm.style.display = 'none';
+            waitingScreen.style.display = 'block';
+        }
+
+        // Socket event listeners
+        socket.on('session-error', ({ message }) => {
+            alert(message);
+            location.reload();
+        });
+
+        // Öğretmen Start Session'a bastığında quiz başlasın!
+        socket.on('quiz-started', () => {
+            console.log('Quiz başladı sinyali geldi!');
+            waitingScreen.style.display = 'none';
+            quizContainer.style.display = 'block';
+        });
+
+        socket.on('question-changed', (question) => {
+            waitingScreen.style.display = 'none';
+            quizContainer.style.display = 'block';
+            
+            // Display question
+            questionText.textContent = question.text;
+            
+            if (question.image) {
+                questionImage.src = question.image;
+                questionImage.classList.remove('d-none');
+            } else {
+                questionImage.classList.add('d-none');
+            }
+            
+            // Create option buttons
+            optionsContainer.innerHTML = question.options
+                .map((option, index) => `
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-primary w-100 option-button"
+                                onclick="submitAnswer(${index})">
+                            ${option}
+                        </button>
+                    </div>
+                `).join('');
+            
+            // Start timer if provided
+            if (question.timeLimit) {
+                startTimer(question.timeLimit);
+            }
+        });
+
+        socket.on('session-ended', ({ results }) => {
+            clearInterval(timer);
+            quizContainer.style.display = 'none';
+            waitingScreen.style.display = 'none';
+            resultsScreen.style.display = 'block';
+            
+            // Display results
+            document.getElementById('finalScore').textContent = 
+                `${results.score} Puan`;
+            document.getElementById('correctAnswers').textContent = 
+                `${results.correctAnswers} doğru, ${results.totalQuestions - results.correctAnswers} yanlış`;
+        });
+
+        // Timer function
+        function startTimer(seconds) {
+            clearInterval(timer);
+            let timeLeft = seconds;
+            
+            timerElement.textContent = timeLeft;
+            
+            timer = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    disableOptions();
+                }
+            }, 1000);
+        }
+
+        // Submit answer
+        function submitAnswer(optionIndex) {
+            const code = document.getElementById('sessionCode').value.toUpperCase();
+            socket.emit('submit-answer', { code, answer: optionIndex });
+            disableOptions();
+        }
+
+        // Disable options after answering
+        function disableOptions() {
+            const buttons = optionsContainer.getElementsByTagName('button');
+            for (let button of buttons) {
+                button.disabled = true;
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Öğrenci Paneli - Quiz Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .dashboard-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .quiz-card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .quiz-card:hover {
+            transform: translateY(-5px);
+        }
+        .stats-card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .stats-icon {
+            font-size: 2rem;
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/student/dashboard">
+                <i class="ri-questionnaire-line me-2"></i>Quiz Platform
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/student/dashboard">
+                            <i class="ri-dashboard-line me-2"></i>Panel
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/student/join">
+                            <i class="ri-add-circle-line me-2"></i>Quiz'e Katıl
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" 
+                           role="button" data-bs-toggle="dropdown">
+                            <i class="ri-user-line me-2"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="/profile">
+                                    <i class="ri-user-settings-line me-2"></i>Profil
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="/logout">
+                                    <i class="ri-logout-box-line me-2"></i>Çıkış Yap
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Header -->
+    <header class="dashboard-header">
+        <div class="container">
+            <h1 class="h3">
+                <i class="ri-dashboard-line me-2"></i>Öğrenci Paneli
+            </h1>
+            <p class="mb-0">Hoş geldin!</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container pb-5">
+        <!-- Quick Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card stats-card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">Hızlı İşlemler</h5>
+                        <a href="/student/join" class="btn btn-primary">
+                            <i class="ri-add-circle-line me-2"></i>Quiz'e Katıl
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Quizzes -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card stats-card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">Son Katıldığın Quizler</h5>
+                        <% if (recentQuizzes && recentQuizzes.length > 0) { %>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Quiz</th>
+                                            <th>Tarih</th>
+                                            <th>Puan</th>
+                                            <th>Durum</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% recentQuizzes.forEach(quiz => { %>
+                                            <% const session = quiz.sessions.find(s => 
+                                                s.participants.some(p => 
+                                                    p.user.toString() === user._id.toString()
+                                                )
+                                            ) %>
+                                            <% if (session) { %>
+                                                <% const participant = session.participants.find(p => 
+                                                    p.user.toString() === user._id.toString()
+                                                ) %>
+                                                <tr>
+                                                    <td><%= quiz.title %></td>
+                                                    <td>
+                                                        <%= session.startTime.toLocaleDateString('tr-TR') %>
+                                                    </td>
+                                                    <td><%= participant.score %></td>
+                                                    <td>
+                                                        <% if (session.endTime) { %>
+                                                            <span class="badge bg-success">Tamamlandı</span>
+                                                        <% } else { %>
+                                                            <span class="badge bg-warning">Devam Ediyor</span>
+                                                        <% } %>
+                                                    </td>
+                                                </tr>
+                                            <% } %>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <% } else { %>
+                            <p class="text-muted mb-0">Henüz hiç quize katılmadın.</p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
